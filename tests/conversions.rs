@@ -32,6 +32,8 @@ ruma_api! {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub optional_flag: Option<bool>,
     }
+    // temp for compiling
+    error: u8
 }
 
 #[test]
