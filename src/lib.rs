@@ -243,6 +243,8 @@ where
 {
     /// Data returned in a successful response from the endpoint.
     type Response: Outgoing + TryInto<http::Response<Vec<u8>>, Error = IntoHttpError>;
+    /// Error type returned when respnse from endpoint fails.
+    type Error;
 
     /// Metadata about the endpoint.
     const METADATA: Metadata;
@@ -302,6 +304,7 @@ mod tests {
 
         impl Endpoint for Request {
             type Response = Response;
+            type Error = u8;
 
             const METADATA: Metadata = Metadata {
                 description: "Add an alias to a room.",
