@@ -496,7 +496,7 @@ impl ToTokens for Api {
                         })
                     } else {
                         match <#error as ruma_api::EndpointError>::try_from_response(response) {
-                            Ok(err) => Err(ruma_api::error::ServerError::Known(err.into()).into()),
+                            Ok(err) => Err(ruma_api::error::ServerError::Known(err).into()),
                             Err(response_err) => Err(ruma_api::error::ServerError::Unknown(response_err).into())
                         }
                     }

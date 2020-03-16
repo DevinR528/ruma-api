@@ -247,8 +247,10 @@ pub trait EndpointError: Sized {
 pub trait Endpoint: Outgoing + TryInto<http::Request<Vec<u8>>, Error = IntoHttpError>
 where
     <Self as Outgoing>::Incoming: TryFrom<http::Request<Vec<u8>>, Error = FromHttpRequestError>,
-    <Self::Response as Outgoing>::Incoming:
-        TryFrom<http::Response<Vec<u8>>, Error = FromHttpResponseError<<Self as Endpoint>::ResponseError>>,
+    <Self::Response as Outgoing>::Incoming: TryFrom<
+        http::Response<Vec<u8>>,
+        Error = FromHttpResponseError<<Self as Endpoint>::ResponseError>,
+    >,
 {
     /// Data returned in a successful response from the endpoint.
     type Response: Outgoing + TryInto<http::Response<Vec<u8>>, Error = IntoHttpError>;
@@ -402,10 +404,6 @@ mod tests {
                 if http_response.status().as_u16() < 400 {
                     Ok(Response)
                 } else {
-                    // match <Void as crate::EndpointError>::try_into_error(http_response) {
-                    //     Ok(_) => unreachable!("Void"),
-                    //     Err(e) => Err(e),
-                    // }
                     Err(FromHttpResponseError::Http(ServerError::Unknown(
                         crate::error::ResponseDeserializationError::from_response(http_response),
                     )))
