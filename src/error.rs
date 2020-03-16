@@ -4,12 +4,16 @@
 
 use std::fmt::{self, Display, Formatter};
 
-// MOVED into ruma_api macro 
 // FIXME when `!` becomes stable use it
 /// Default error for `ruma_api` macro
-// #[derive(Clone, Copy, Debug)]
-// pub struct Void;
+#[derive(Clone, Copy, Debug)]
+pub struct Void;
 
+impl crate::EndpointError for Void {
+    fn try_into_error(self, response: http::Response<Vec<u8>>) -> Result<Self, ResponseDeserializationEndpointError> {
+        Err(ResponseDeserializationEndpointError::from_response(response))
+    }
+}
 /// An error when converting one of ruma's endpoint-specific request or response
 /// types to the corresponding http type.
 #[derive(Debug)]
@@ -156,17 +160,30 @@ impl std::error::Error for ResponseDeserializationError {}
 /// An error that occurred when trying to deserialize a response.
 #[derive(Debug)]
 pub struct ResponseDeserializationEndpointError {
+    inner: Option<DeserializationError>,
     http_response: http::Response<Vec<u8>>,
 }
 
 impl ResponseDeserializationEndpointError {
     /// This method is public so it is accessible from `ruma_api!` generated
     /// code. It is not considered part of ruma-api's public API.
+    /// Creates an Error from a `http::Response`.
     #[doc(hidden)]
-    pub fn new(
+    pub fn from_response(
         http_response: http::Response<Vec<u8>>,
     ) -> Self {
-        Self { http_response }
+        Self { http_response, inner: None }
+    }
+
+    /// This method is public so it is accessible from `ruma_api!` generated
+    /// code. It is not considered part of ruma-api's public API.
+    /// Creates an Error just as its non Endpoint counterpart.
+    #[doc(hidden)]
+    pub fn new(
+        inner: impl Into<DeserializationError>,
+        http_response: http::Response<Vec<u8>>,
+    ) -> Self {
+        Self { http_response, inner: Some(inner.into()), }
     }
 }
 

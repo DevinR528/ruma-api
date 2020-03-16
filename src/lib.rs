@@ -233,12 +233,10 @@ pub trait Outgoing {
 }
 
 /// Gives users the ability to define their own serializable/deserializable errors.
-pub trait EndpointError {
-    /// The specific Error type when deserialization fails.
-    type E;
+pub trait EndpointError: Sized {
     /// 
-    fn try_from_error(self, response: http::Response<Vec<u8>>)
-        -> Result<Self::E, error::ResponseDeserializationEndpointError>;
+    fn try_into_error(self, response: http::Response<Vec<u8>>)
+        -> Result<Self, error::ResponseDeserializationEndpointError>;
 }
 
 /// A Matrix API endpoint.
@@ -252,8 +250,8 @@ where
 {
     /// Data returned in a successful response from the endpoint.
     type Response: Outgoing + TryInto<http::Response<Vec<u8>>, Error = IntoHttpError>;
-    /// Error type returned when respnse from endpoint fails.
-    type Error: std::error::Error;
+    /// Error type returned when response from endpoint fails.
+    type Error: EndpointError;
 
     /// Metadata about the endpoint.
     const METADATA: Metadata;
@@ -295,7 +293,8 @@ mod tests {
         use crate::{
             error::{
                 FromHttpRequestError, FromHttpResponseError, IntoHttpError,
-                RequestDeserializationError, ServerError, ResponseDeserializationEndpointError
+                RequestDeserializationError, ServerError, ResponseDeserializationEndpointError,
+                Void
             },
             Endpoint, EndpointError, Metadata, Outgoing,
         };
@@ -311,19 +310,9 @@ mod tests {
             type Incoming = Self;
         }
 
-        impl EndpointError for Infallible {
-            type E = Infallible;
-            fn try_from_error(
-                self,
-                response: http::Response<Vec<u8>>
-            ) -> Result<Self::E, ResponseDeserializationEndpointError> {
-                Err(ResponseDeserializationEndpointError::new(response))
-            }
-        }
-
         impl Endpoint for Request {
             type Response = Response;
-            type Error = Infallible;
+            type Error = Void;
 
             const METADATA: Metadata = Metadata {
                 description: "Add an alias to a room.",
