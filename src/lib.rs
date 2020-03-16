@@ -248,17 +248,12 @@ pub trait Endpoint: Outgoing + TryInto<http::Request<Vec<u8>>, Error = IntoHttpE
 where
     <Self as Outgoing>::Incoming: TryFrom<http::Request<Vec<u8>>, Error = FromHttpRequestError>,
     <Self::Response as Outgoing>::Incoming:
-        TryFrom<http::Response<Vec<u8>>, Error = FromHttpResponseError<Self::ResponseError>>,
+        TryFrom<http::Response<Vec<u8>>, Error = FromHttpResponseError<<Self as Endpoint>::ResponseError>>,
 {
     /// Data returned in a successful response from the endpoint.
     type Response: Outgoing + TryInto<http::Response<Vec<u8>>, Error = IntoHttpError>;
     /// Error type returned when response from endpoint fails.
-    type Error: EndpointError;
-    /// Data returned in an unsuccessful response from the endpoint.
-    ///
-    /// Note: This is need to disambiguate the <EndpointError as Response>::Error from
-    /// the Request struct which Endpoint is also implemented for.
-    type ResponseError;
+    type ResponseError: EndpointError;
 
     /// Metadata about the endpoint.
     const METADATA: Metadata;
@@ -318,7 +313,6 @@ mod tests {
 
         impl Endpoint for Request {
             type Response = Response;
-            type Error = Void;
             type ResponseError = Void;
 
             const METADATA: Metadata = Metadata {

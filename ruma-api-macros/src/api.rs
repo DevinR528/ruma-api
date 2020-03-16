@@ -505,7 +505,6 @@ impl ToTokens for Api {
 
             impl ruma_api::Endpoint for Request {
                 type Response = Response;
-                type Error = #error;
                 type ResponseError = #error;
 
                 /// Metadata for the `#name` endpoint.
