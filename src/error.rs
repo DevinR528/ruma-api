@@ -5,7 +5,7 @@
 use std::fmt::{self, Display, Formatter};
 
 // FIXME when `!` becomes stable use it
-/// Default error for `ruma_api` macro
+/// Default `ResponseError` for `ruma_api!` macro
 #[derive(Clone, Copy, Debug)]
 pub struct Void;
 

@@ -620,16 +620,16 @@ impl Parse for RawResponse {
 }
 
 pub struct RawErrorType {
-    pub response_kw: kw::error,
+    pub error_kw: kw::error,
     pub ty: Type,
 }
 
 impl Parse for RawErrorType {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        let response_kw = input.parse::<kw::error>()?;
+        let error_kw = input.parse::<kw::error>()?;
         input.parse::<Token![:]>()?;
         let ty = input.parse()?;
 
-        Ok(Self { response_kw, ty })
+        Ok(Self { error_kw, ty })
     }
 }
