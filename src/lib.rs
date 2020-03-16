@@ -234,9 +234,11 @@ pub trait Outgoing {
 
 /// Gives users the ability to define their own serializable/deserializable errors.
 pub trait EndpointError: Sized {
-    /// 
-    fn try_into_error(self, response: http::Response<Vec<u8>>)
-        -> Result<Self, error::ResponseDeserializationEndpointError>;
+    /// This will always return `Err` variant when no `error` field is defined in
+    /// the `ruma_api` macro.
+    fn try_into_error(
+        response: http::Response<Vec<u8>>,
+    ) -> Result<Self, error::ResponseDeserializationError>;
 }
 
 /// A Matrix API endpoint.
@@ -246,12 +248,14 @@ pub trait Endpoint: Outgoing + TryInto<http::Request<Vec<u8>>, Error = IntoHttpE
 where
     <Self as Outgoing>::Incoming: TryFrom<http::Request<Vec<u8>>, Error = FromHttpRequestError>,
     <Self::Response as Outgoing>::Incoming:
-        TryFrom<http::Response<Vec<u8>>, Error = FromHttpResponseError>,
+        TryFrom<http::Response<Vec<u8>>, Error = FromHttpResponseError<Self::ResponseError>>,
 {
     /// Data returned in a successful response from the endpoint.
     type Response: Outgoing + TryInto<http::Response<Vec<u8>>, Error = IntoHttpError>;
     /// Error type returned when response from endpoint fails.
     type Error: EndpointError;
+    /// Data returned in an unsuccessful response from the endpoint.
+    type ResponseError;
 
     /// Metadata about the endpoint.
     const METADATA: Metadata;
@@ -284,7 +288,7 @@ pub struct Metadata {
 mod tests {
     /// PUT /_matrix/client/r0/directory/room/:room_alias
     pub mod create {
-        use std::{convert::{TryFrom, Infallible}, ops::Deref};
+        use std::{convert::TryFrom, ops::Deref};
 
         use http::{header::CONTENT_TYPE, method::Method};
         use ruma_identifiers::{RoomAliasId, RoomId};
@@ -293,10 +297,9 @@ mod tests {
         use crate::{
             error::{
                 FromHttpRequestError, FromHttpResponseError, IntoHttpError,
-                RequestDeserializationError, ServerError, ResponseDeserializationEndpointError,
-                Void
+                RequestDeserializationError, ServerError, Void,
             },
-            Endpoint, EndpointError, Metadata, Outgoing,
+            Endpoint, Metadata, Outgoing,
         };
 
         /// A request to create a new room alias.
@@ -313,6 +316,7 @@ mod tests {
         impl Endpoint for Request {
             type Response = Response;
             type Error = Void;
+            type ResponseError = Void;
 
             const METADATA: Metadata = Metadata {
                 description: "Add an alias to a room.",
@@ -395,13 +399,19 @@ mod tests {
         }
 
         impl TryFrom<http::Response<Vec<u8>>> for Response {
-            type Error = FromHttpResponseError;
+            type Error = FromHttpResponseError<Void>;
 
             fn try_from(http_response: http::Response<Vec<u8>>) -> Result<Response, Self::Error> {
                 if http_response.status().as_u16() < 400 {
                     Ok(Response)
                 } else {
-                    Err(FromHttpResponseError::Http(ServerError::new(http_response)))
+                    // match <Void as crate::EndpointError>::try_into_error(http_response) {
+                    //     Ok(_) => unreachable!("Void"),
+                    //     Err(e) => Err(e),
+                    // }
+                    Err(FromHttpResponseError::Http(ServerError::Unknown(
+                        crate::error::ResponseDeserializationError::from_response(http_response),
+                    )))
                 }
             }
         }

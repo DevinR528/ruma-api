@@ -44,10 +44,9 @@ impl TryFrom<RawApi> for Api {
             metadata: raw_api.metadata.try_into()?,
             request: raw_api.request.try_into()?,
             response: raw_api.response.try_into()?,
-            error: raw_api.error.map_or(
-                syn::parse_str::<Type>("ruma_api::error::Void").unwrap(),
-                |err| err.ty,
-            ),
+            error: raw_api
+                .error
+                .map_or(syn::parse_str::<Type>("ruma_api::error::Void").unwrap(), |err| err.ty),
         };
 
         let newtype_body_field = res.request.newtype_body_field();
@@ -481,7 +480,7 @@ impl ToTokens for Api {
             }
 
             impl std::convert::TryFrom<ruma_api::exports::http::Response<Vec<u8>>> for #response_try_from_type {
-                type Error = ruma_api::error::FromHttpResponseError;
+                type Error = ruma_api::error::FromHttpRequestError<>;
 
                 #[allow(unused_variables)]
                 fn try_from(
@@ -496,7 +495,7 @@ impl ToTokens for Api {
                             #response_init_fields
                         })
                     } else {
-                        Err(ruma_api::error::ServerError::new(response).into())
+                        <#error as ruma_api::EndpointError>::try_into_error(http_response)
                     }
                 }
             }
@@ -504,6 +503,7 @@ impl ToTokens for Api {
             impl ruma_api::Endpoint for Request {
                 type Response = Response;
                 type Error = #error;
+                type ResponseError = #error;
 
                 /// Metadata for the `#name` endpoint.
                 const METADATA: ruma_api::Metadata = ruma_api::Metadata {
