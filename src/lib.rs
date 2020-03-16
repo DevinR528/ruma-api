@@ -234,7 +234,7 @@ pub trait Outgoing {
 
 /// Gives users the ability to define their own serializable/deserializable errors.
 pub trait EndpointError: Sized {
-    /// Tries to construct Self from an `http::Response`.
+    /// Tries to construct `Self` from an `http::Response`.
     ///
     /// This will always return `Err` variant when no `error` field is defined in
     /// the `ruma_api` macro.

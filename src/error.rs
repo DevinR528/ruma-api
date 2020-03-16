@@ -174,10 +174,10 @@ impl std::error::Error for ResponseDeserializationError {}
 /// An error was reported by the server (HTTP status code 4xx or 5xx)
 #[derive(Debug)]
 pub enum ServerError<E> {
-    /// When the type of the error is defined, specified in `ruma_api` macro.
+    /// An error that is expected to happen under certain circumstances and
+    /// that has a well-defined structure
     Known(E),
-    /// If the error field in the ruma_api macro is left out `ResponseDeserializationError` is
-    /// returned.
+    /// An error of unexpected type of structure
     Unknown(ResponseDeserializationError),
 }
 
