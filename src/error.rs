@@ -4,6 +4,12 @@
 
 use std::fmt::{self, Display, Formatter};
 
+// MOVED into ruma_api macro 
+// FIXME when `!` becomes stable use it
+/// Default error for `ruma_api` macro
+// #[derive(Clone, Copy, Debug)]
+// pub struct Void;
+
 /// An error when converting one of ruma's endpoint-specific request or response
 /// types to the corresponding http type.
 #[derive(Debug)]
@@ -146,6 +152,32 @@ impl Display for ResponseDeserializationError {
 }
 
 impl std::error::Error for ResponseDeserializationError {}
+
+/// An error that occurred when trying to deserialize a response.
+#[derive(Debug)]
+pub struct ResponseDeserializationEndpointError {
+    http_response: http::Response<Vec<u8>>,
+}
+
+impl ResponseDeserializationEndpointError {
+    /// This method is public so it is accessible from `ruma_api!` generated
+    /// code. It is not considered part of ruma-api's public API.
+    #[doc(hidden)]
+    pub fn new(
+        http_response: http::Response<Vec<u8>>,
+    ) -> Self {
+        Self { http_response }
+    }
+}
+
+impl Display for ResponseDeserializationEndpointError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // TODO what to show
+        writeln!(f, "deserialization error, no specific error provided")
+    }
+}
+
+impl std::error::Error for ResponseDeserializationEndpointError {}
 
 /// An error was reported by the server (HTTP status code 4xx or 5xx)
 #[derive(Debug)]

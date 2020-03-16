@@ -232,6 +232,15 @@ pub trait Outgoing {
     type Incoming;
 }
 
+/// Gives users the ability to define their own serializable/deserializable errors.
+pub trait EndpointError {
+    /// The specific Error type when deserialization fails.
+    type E;
+    /// 
+    fn try_from_error(self, response: http::Response<Vec<u8>>)
+        -> Result<Self::E, error::ResponseDeserializationEndpointError>;
+}
+
 /// A Matrix API endpoint.
 ///
 /// The type implementing this trait contains any data needed to make a request to the endpoint.
@@ -244,7 +253,7 @@ where
     /// Data returned in a successful response from the endpoint.
     type Response: Outgoing + TryInto<http::Response<Vec<u8>>, Error = IntoHttpError>;
     /// Error type returned when respnse from endpoint fails.
-    type Error;
+    type Error: std::error::Error;
 
     /// Metadata about the endpoint.
     const METADATA: Metadata;
@@ -277,7 +286,7 @@ pub struct Metadata {
 mod tests {
     /// PUT /_matrix/client/r0/directory/room/:room_alias
     pub mod create {
-        use std::{convert::TryFrom, ops::Deref};
+        use std::{convert::{TryFrom, Infallible}, ops::Deref};
 
         use http::{header::CONTENT_TYPE, method::Method};
         use ruma_identifiers::{RoomAliasId, RoomId};
@@ -286,9 +295,9 @@ mod tests {
         use crate::{
             error::{
                 FromHttpRequestError, FromHttpResponseError, IntoHttpError,
-                RequestDeserializationError, ServerError,
+                RequestDeserializationError, ServerError, ResponseDeserializationEndpointError
             },
-            Endpoint, Metadata, Outgoing,
+            Endpoint, EndpointError, Metadata, Outgoing,
         };
 
         /// A request to create a new room alias.
@@ -302,9 +311,19 @@ mod tests {
             type Incoming = Self;
         }
 
+        impl EndpointError for Infallible {
+            type E = Infallible;
+            fn try_from_error(
+                self,
+                response: http::Response<Vec<u8>>
+            ) -> Result<Self::E, ResponseDeserializationEndpointError> {
+                Err(ResponseDeserializationEndpointError::new(response))
+            }
+        }
+
         impl Endpoint for Request {
             type Response = Response;
-            type Error = u8;
+            type Error = Infallible;
 
             const METADATA: Metadata = Metadata {
                 description: "Add an alias to a room.",

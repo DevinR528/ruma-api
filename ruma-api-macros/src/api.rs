@@ -44,7 +44,10 @@ impl TryFrom<RawApi> for Api {
             metadata: raw_api.metadata.try_into()?,
             request: raw_api.request.try_into()?,
             response: raw_api.response.try_into()?,
-            error: raw_api.error.ty,
+            error: raw_api.error.map_or(
+                syn::parse_str::<Type>("Void").unwrap(),
+                |err| err.ty,
+            ),
         };
 
         let newtype_body_field = res.request.newtype_body_field();
@@ -402,6 +405,22 @@ impl ToTokens for Api {
         let response_doc = format!("Data in the response from the `{}` API endpoint.", name);
 
         let error = &self.error;
+        let endpoint_error_body = if let Type::Path(tp) = error {
+            let void = tp.path.get_ident().map(|i| i == "Void") == Some(true);
+            if void {
+                quote! {
+                    Err(ruma_api::error::ResponseDeserializationEndpointError::new(response))
+                }
+            } else {
+                quote! {
+                    // how do we construct an Error from `ruma_client_api`
+                    #error::from()
+                }
+            }
+        } else {
+            // this branch should never be taken
+            TokenStream::new()
+        };
 
         let api = quote! {
             use ruma_api::exports::serde::de::Error as _;
@@ -498,9 +517,26 @@ impl ToTokens for Api {
                 }
             }
 
+            #[derive(Clone, Copy, Debug)]
+            pub struct Void;
+            impl std::error::Error for Void {}
+            impl std::fmt::Display for Void {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    writeln!(f, "Void")
+                }
+            }
+            impl ruma_api::EndpointError for Void {
+                type E = #error;
+                fn try_from_error(
+                    self,
+                    response: ruma_api::exports::http::Response<Vec<u8>>
+                ) -> Result<Self::E, ruma_api::error::ResponseDeserializationEndpointError> {
+                    #endpoint_error_body
+                }
+            }
+
             impl ruma_api::Endpoint for Request {
                 type Response = Response;
-                // TODO remove me
                 type Error = #error;
 
                 /// Metadata for the `#name` endpoint.
@@ -538,7 +574,7 @@ pub struct RawApi {
     /// The `response` section of the macro.
     pub response: RawResponse,
     /// The `error` section of the macro.
-    pub error: RawErrorType,
+    pub error: Option<RawErrorType>,
 }
 
 impl Parse for RawApi {
@@ -547,7 +583,7 @@ impl Parse for RawApi {
             metadata: input.parse()?,
             request: input.parse()?,
             response: input.parse()?,
-            error: input.parse()?,
+            error: input.parse().ok(),
         })
     }
 }
