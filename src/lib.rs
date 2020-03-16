@@ -255,8 +255,8 @@ where
     /// Error type returned when response from endpoint fails.
     type Error: EndpointError;
     /// Data returned in an unsuccessful response from the endpoint.
-    /// 
-    /// This is need to disambiguate the <EndpointError as Response>::Error from 
+    ///
+    /// Note: This is need to disambiguate the <EndpointError as Response>::Error from
     /// the Request struct which Endpoint is also implemented for.
     type ResponseError;
 
