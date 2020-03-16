@@ -10,7 +10,7 @@ use std::fmt::{self, Display, Formatter};
 pub struct Void;
 
 impl crate::EndpointError for Void {
-    fn try_into_error(
+    fn try_from_response(
         response: http::Response<Vec<u8>>,
     ) -> Result<Self, ResponseDeserializationError> {
         Err(ResponseDeserializationError::from_response(response))

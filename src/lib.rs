@@ -236,7 +236,7 @@ pub trait Outgoing {
 pub trait EndpointError: Sized {
     /// This will always return `Err` variant when no `error` field is defined in
     /// the `ruma_api` macro.
-    fn try_into_error(
+    fn try_from_response(
         response: http::Response<Vec<u8>>,
     ) -> Result<Self, error::ResponseDeserializationError>;
 }
@@ -255,6 +255,9 @@ where
     /// Error type returned when response from endpoint fails.
     type Error: EndpointError;
     /// Data returned in an unsuccessful response from the endpoint.
+    /// 
+    /// This is need to disambiguate the <EndpointError as Response>::Error from 
+    /// the Request struct which Endpoint is also implemented for.
     type ResponseError;
 
     /// Metadata about the endpoint.

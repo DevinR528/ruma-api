@@ -480,7 +480,7 @@ impl ToTokens for Api {
             }
 
             impl std::convert::TryFrom<ruma_api::exports::http::Response<Vec<u8>>> for #response_try_from_type {
-                type Error = ruma_api::error::FromHttpRequestError<>;
+                type Error = ruma_api::error::FromHttpResponseError<#error>;
 
                 #[allow(unused_variables)]
                 fn try_from(
@@ -495,7 +495,10 @@ impl ToTokens for Api {
                             #response_init_fields
                         })
                     } else {
-                        <#error as ruma_api::EndpointError>::try_into_error(http_response)
+                        match <#error as ruma_api::EndpointError>::try_from_response(response) {
+                            Ok(err) => Err(ruma_api::error::ServerError::Known(err.into()).into()),
+                            Err(response_err) => Err(ruma_api::error::ServerError::Unknown(response_err).into())
+                        }
                     }
                 }
             }
